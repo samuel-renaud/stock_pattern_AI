@@ -1,8 +1,5 @@
 """
 This script pre-processes data for our stock AI pipeline
-
-
-
 """
 
 import mplfinance as mpf
