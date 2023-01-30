@@ -50,19 +50,26 @@ class InvBottleneck(nn.Module):
         self.invconv3 = nn.ConvTranspose2d(planes, self.expansion*planes, kernel_size=1, bias=False)
         self.invbn3 = nn.BatchNorm2d(self.expansion*planes)
 
-        # self.shortcut = nn.Sequential()
-        # if stride != 1 or in_planes != self.expansion*planes:
-        #     self.shortcut = nn.Sequential(
-        #         nn.Conv2d(in_planes, self.expansion*planes,
-        #                   kernel_size=1, stride=stride, bias=False),
-        #         nn.BatchNorm2d(self.expansion*planes)
-        #     )
+        #needed to take care of broken res' due to deconv!
+        self.shortcut = nn.Sequential()
+        if stride == 1:
+            self.shortcut = nn.Sequential(
+                nn.ConvTranspose2d(in_planes, self.expansion*planes,
+                kernel_size=4, stride=1, padding=2, bias=False),
+                nn.BatchNorm2d(self.expansion*planes)
+            )
+        if stride != 1:
+            self.shortcut = nn.Sequential(
+                nn.ConvTranspose2d(in_planes, self.expansion*planes,
+                kernel_size=4, stride=stride, padding=padding, bias=False),
+                nn.BatchNorm2d(self.expansion*planes)
+            )
 
     def forward(self, x):
         out = F.relu(self.invbn1(self.invconv1(x)))
         out = F.relu(self.invbn2(self.invconv2(out)))
         out = self.invbn3(self.invconv3(out))
-        # out += self.shortcut(x)
+        out += self.shortcut(x)
         out = F.relu(out)
         return out
 
@@ -155,7 +162,7 @@ class ResNet(nn.Module):
         out = self.layer3(out)
         # print(out.shape)
         out = self.layer4(out)
-        # print(out.shape)
+        #print(out.shape)
         out = self.layer5(out)
         #print(out.shape)
         out = self.layer6(out)
@@ -175,9 +182,9 @@ class ResNet(nn.Module):
         out = self.invlayer6(out)
         #print(out.shape)
         out = self.invlayer5(out)
-        # print(out.shape)
+        #print(out.shape)
         out = self.invlayer4(out)
-        # print(out.shape)
+        #print(out.shape)
         out = self.invlayer3(out)
         # print(out.shape)
         out = self.invlayer2(out)
